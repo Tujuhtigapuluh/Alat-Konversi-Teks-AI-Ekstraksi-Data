@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { Download, Check, FileText, Code } from 'lucide-react';
-import { DocumentType, generateDocxBlob } from '../utils/textFormatter';
+import { DocumentType, generateDocxBlob, sectionsToHtml, Section } from '../utils/textFormatter';
 
 interface Props {
-  sections: unknown[];
+  sections: Section[];
   docType: DocumentType;
   html: string;
 }
 
-export default function ActionButtons({ docType, html }: Props) {
+export default function ActionButtons({ docType, html, sections }: Props) {
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
 
   const handleDownloadDocx = () => {
-    const blob = generateDocxBlob(html);
+    // Gunakan isExport = true agar margin, tab, dan layout tabel khusus MS Word aktif
+    const exportHtml = sectionsToHtml(sections, docType, true);
+    const blob = generateDocxBlob(exportHtml);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -26,17 +28,19 @@ export default function ActionButtons({ docType, html }: Props) {
 
   const handleCopyHtml = async () => {
     try {
+      const exportHtml = sectionsToHtml(sections, docType, true);
       await navigator.clipboard.write([
         new ClipboardItem({
-          'text/html': new Blob([html], { type: 'text/html' }),
-          'text/plain': new Blob([html], { type: 'text/plain' }),
+          'text/html': new Blob([exportHtml], { type: 'text/html' }),
+          'text/plain': new Blob([exportHtml], { type: 'text/plain' }),
         }),
       ]);
       setCopiedHtml(true);
       setTimeout(() => setCopiedHtml(false), 2000);
     } catch {
       // Fallback
-      await navigator.clipboard.writeText(html);
+      const exportHtml = sectionsToHtml(sections, docType, true);
+      await navigator.clipboard.writeText(exportHtml);
       setCopiedHtml(true);
       setTimeout(() => setCopiedHtml(false), 2000);
     }
@@ -45,9 +49,10 @@ export default function ActionButtons({ docType, html }: Props) {
   const handleCopyPlainFormatted = async () => {
     try {
       // Copy as rich text so it pastes formatted in Word/Docs
+      const exportHtml = sectionsToHtml(sections, docType, true);
       await navigator.clipboard.write([
         new ClipboardItem({
-          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/html': new Blob([exportHtml], { type: 'text/html' }),
         }),
       ]);
       setCopiedText(true);

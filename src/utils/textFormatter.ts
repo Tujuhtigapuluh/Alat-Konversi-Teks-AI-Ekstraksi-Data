@@ -29,13 +29,14 @@ function formatInlineMarkdown(text: string): string {
 }
 
 function detectTocLine(line: string): TocItem | null {
-  // Patterns like: "BAB I PENDAHULUAN ..... 1" or "1.1 Latar Belakang ... 3"
-  const tocPattern = /^(\s*)([\w\d].*?)\s*[.…·]{3,}\s*(\d+)\s*$/;
+  // Pola untuk: "BAB I PENDAHULUAN ..... 1" atau "1.1 Latar Belakang ... " atau ".... ix"
+  // Mengizinkan angka halaman di akhir opsional (angka atau huruf romawi)
+  const tocPattern = /^(\s*)([\w\d].*?)\s*[.…·]{3,}\s*([\w\d]*)\s*$/;
   const match = line.match(tocPattern);
   if (match) {
     const indent = match[1].length;
     const level = indent >= 4 ? 2 : indent >= 2 ? 1 : 0;
-    return { title: match[2].trim(), page: match[3], level };
+    return { title: match[2].trim(), page: match[3] || '', level };
   }
   return null;
 }
@@ -228,9 +229,9 @@ const DOC_STYLES: Record<DocumentType, {
   skripsi: {
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '12pt',
-    lineHeight: '2',
+    lineHeight: '200%',
     h1Size: '14pt',
-    h2Size: '13pt',
+    h2Size: '12pt',
     h3Size: '12pt',
     textAlign: 'justify',
     indent: '1.27cm',
@@ -238,9 +239,9 @@ const DOC_STYLES: Record<DocumentType, {
   makalah: {
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '12pt',
-    lineHeight: '1.5',
+    lineHeight: '150%',
     h1Size: '14pt',
-    h2Size: '13pt',
+    h2Size: '12pt',
     h3Size: '12pt',
     textAlign: 'justify',
     indent: '1.27cm',
@@ -248,9 +249,9 @@ const DOC_STYLES: Record<DocumentType, {
   jurnal: {
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '11pt',
-    lineHeight: '1.15',
-    h1Size: '13pt',
-    h2Size: '12pt',
+    lineHeight: '115%',
+    h1Size: '12pt',
+    h2Size: '11pt',
     h3Size: '11pt',
     textAlign: 'justify',
     indent: '0.75cm',
@@ -258,7 +259,7 @@ const DOC_STYLES: Record<DocumentType, {
   laporan: {
     fontFamily: "'Arial', Helvetica, sans-serif",
     fontSize: '11pt',
-    lineHeight: '1.5',
+    lineHeight: '150%',
     h1Size: '14pt',
     h2Size: '12pt',
     h3Size: '11pt',
@@ -268,32 +269,36 @@ const DOC_STYLES: Record<DocumentType, {
   essay: {
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '12pt',
-    lineHeight: '2',
+    lineHeight: '200%',
     h1Size: '14pt',
-    h2Size: '13pt',
+    h2Size: '12pt',
     h3Size: '12pt',
     textAlign: 'left',
     indent: '1.27cm',
   },
 };
 
-export function sectionsToHtml(sections: Section[], docType: DocumentType): string {
+export function sectionsToHtml(sections: Section[], docType: DocumentType, isExport = false): string {
   const style = DOC_STYLES[docType];
   
-  let html = `<div style="font-family:${style.fontFamily};font-size:${style.fontSize};line-height:${style.lineHeight};color:#1a1a1a;max-width:210mm;margin:0 auto;padding:2cm;">`;
+  // Jika export, kita beri class WordSection1 agar terformat dengan margin skripsi
+  const wrapperClass = isExport ? 'class="WordSection1"' : '';
+  const inlineContainerStyle = isExport ? '' : `max-width:210mm;margin:0 auto;padding:2cm;`;
+  
+  let html = `<div ${wrapperClass} style="font-family:${style.fontFamily};font-size:${style.fontSize};line-height:${style.lineHeight};color:#000000;${inlineContainerStyle}">`;
 
   for (const section of sections) {
     switch (section.type) {
       case 'h1':
-        html += `<h1 style="font-family:${style.fontFamily};font-size:${style.h1Size};font-weight:bold;text-align:center;margin:24pt 0 12pt 0;text-transform:uppercase;line-height:1.5;">${formatInlineMarkdown(section.content)}</h1>`;
+        html += `<h1 style="font-family:${style.fontFamily};font-size:${style.h1Size};font-weight:bold;text-align:center;margin:24pt 0 12pt 0;text-transform:uppercase;line-height:150%;page-break-after:avoid;">${formatInlineMarkdown(section.content)}</h1>`;
         break;
 
       case 'h2':
-        html += `<h2 style="font-family:${style.fontFamily};font-size:${style.h2Size};font-weight:bold;margin:18pt 0 8pt 0;line-height:1.5;">${formatInlineMarkdown(section.content)}</h2>`;
+        html += `<h2 style="font-family:${style.fontFamily};font-size:${style.h2Size};font-weight:bold;margin:18pt 0 8pt 0;line-height:150%;page-break-after:avoid;">${formatInlineMarkdown(section.content)}</h2>`;
         break;
 
       case 'h3':
-        html += `<h3 style="font-family:${style.fontFamily};font-size:${style.h3Size};font-weight:bold;font-style:italic;margin:14pt 0 6pt 0;line-height:1.5;">${formatInlineMarkdown(section.content)}</h3>`;
+        html += `<h3 style="font-family:${style.fontFamily};font-size:${style.h3Size};font-weight:bold;font-style:italic;margin:14pt 0 6pt 0;line-height:150%;page-break-after:avoid;">${formatInlineMarkdown(section.content)}</h3>`;
         break;
 
       case 'paragraph':
@@ -303,7 +308,7 @@ export function sectionsToHtml(sections: Section[], docType: DocumentType): stri
       case 'bullet':
         html += `<ul style="font-family:${style.fontFamily};font-size:${style.fontSize};margin:6pt 0 6pt 1.5cm;padding:0;line-height:${style.lineHeight};">`;
         for (const item of section.items || []) {
-          html += `<li style="margin:2pt 0;">${formatInlineMarkdown(item)}</li>`;
+          html += `<li style="margin-bottom:4pt;">${formatInlineMarkdown(item)}</li>`;
         }
         html += '</ul>';
         break;
@@ -311,45 +316,56 @@ export function sectionsToHtml(sections: Section[], docType: DocumentType): stri
       case 'numbered':
         html += `<ol style="font-family:${style.fontFamily};font-size:${style.fontSize};margin:6pt 0 6pt 1.5cm;padding:0;line-height:${style.lineHeight};">`;
         for (const item of section.items || []) {
-          html += `<li style="margin:2pt 0;">${formatInlineMarkdown(item)}</li>`;
+          html += `<li style="margin-bottom:4pt;">${formatInlineMarkdown(item)}</li>`;
         }
         html += '</ol>';
         break;
 
       case 'blockquote':
-        html += `<blockquote style="font-family:${style.fontFamily};font-size:${style.fontSize};margin:12pt 1cm 12pt 2cm;padding:8pt 12pt;border-left:3pt solid #6366f1;background:#f8f7ff;font-style:italic;line-height:${style.lineHeight};">${formatInlineMarkdown(section.content)}</blockquote>`;
+        html += `<blockquote style="font-family:${style.fontFamily};font-size:${style.fontSize};margin:12pt 1cm 12pt 2cm;padding:8pt 12pt;border-left:3pt solid #000000;background:#f9f9f9;font-style:italic;line-height:${style.lineHeight};">${formatInlineMarkdown(section.content)}</blockquote>`;
         break;
 
       case 'code':
-        html += `<pre style="font-family:'Courier New',Courier,monospace;font-size:10pt;background:#1e293b;color:#e2e8f0;padding:16pt;border-radius:8pt;margin:12pt 0;overflow-x:auto;line-height:1.5;white-space:pre-wrap;">${section.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+        html += `<pre style="font-family:'Courier New',Courier,monospace;font-size:10pt;background:#eeeeee;color:#000000;padding:10pt;border:1pt solid #cccccc;margin:12pt 0;line-height:150%;white-space:pre-wrap;">${section.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
         break;
 
       case 'toc':
-        html += `<div style="font-family:${style.fontFamily};font-size:${style.fontSize};margin:12pt 0;">`;
+        html += `<div style="font-family:${style.fontFamily};font-size:${style.fontSize};margin:12pt 0;line-height:150%;">`;
         for (const item of section.tocItems || []) {
           const paddingLeft = item.level * 1.5;
-          html += `<div style="display:flex;align-items:baseline;margin:4pt 0;padding-left:${paddingLeft}cm;">`;
-          html += `<span style="flex-shrink:0;">${formatInlineMarkdown(item.title)}</span>`;
-          html += `<span style="flex:1;border-bottom:1pt dotted #999;margin:0 4pt;min-width:20pt;"></span>`;
-          html += `<span style="flex-shrink:0;">${item.page || ''}</span>`;
-          html += '</div>';
+          if (isExport) {
+            // TABLE LAYOUT FOR PERFECT DOT LEADERS IN MS WORD
+            html += `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0; font-family:${style.fontFamily}; font-size:${style.fontSize}; line-height:150%;">`;
+            html += `<tr>`;
+            html += `<td style="padding-left: ${paddingLeft}cm; padding-right: 4pt; white-space: nowrap;" valign="bottom">${formatInlineMarkdown(item.title)}</td>`;
+            html += `<td width="100%" valign="bottom" style="border-bottom: 1pt dotted #000000; font-size: 1px; line-height: 1px;">&nbsp;</td>`;
+            html += `<td style="padding-left: 4pt; white-space: nowrap; text-align: right;" valign="bottom">${item.page || ''}</td>`;
+            html += `</tr>`;
+            html += `</table>`;
+          } else {
+            // FLEXBOX LAYOUT FOR REACT PREVIEW
+            html += `<div style="display:flex;align-items:baseline;margin:4pt 0;padding-left:${paddingLeft}cm;">`;
+            html += `<span style="flex-shrink:0;">${formatInlineMarkdown(item.title)}</span>`;
+            html += `<span style="flex:1;border-bottom:1pt dotted #000;margin:0 4pt;min-width:20pt;position:relative;top:-4pt;"></span>`;
+            html += `<span style="flex-shrink:0;">${item.page || ''}</span>`;
+            html += '</div>';
+          }
         }
         html += '</div>';
         break;
 
       case 'table':
-        html += `<table style="font-family:${style.fontFamily};font-size:${style.fontSize};border-collapse:collapse;width:100%;margin:12pt 0;">`;
+        html += `<table width="100%" style="font-family:${style.fontFamily};font-size:${style.fontSize};border-collapse:collapse;width:100%;margin:12pt 0;line-height:150%;">`;
         if (section.rows && section.rows.length > 0) {
-          // First row as header
           html += '<thead><tr>';
           for (const cell of section.rows[0]) {
-            html += `<th style="border:1pt solid #333;padding:6pt 8pt;background:#f1f5f9;font-weight:bold;text-align:left;">${formatInlineMarkdown(cell)}</th>`;
+            html += `<th style="border:1pt solid #000000;padding:6pt 8pt;background:#eeeeee;font-weight:bold;text-align:center;">${formatInlineMarkdown(cell)}</th>`;
           }
           html += '</tr></thead><tbody>';
           for (let r = 1; r < section.rows.length; r++) {
             html += '<tr>';
             for (const cell of section.rows[r]) {
-              html += `<td style="border:1pt solid #333;padding:6pt 8pt;">${formatInlineMarkdown(cell)}</td>`;
+              html += `<td style="border:1pt solid #000000;padding:6pt 8pt;text-align:left;">${formatInlineMarkdown(cell)}</td>`;
             }
             html += '</tr>';
           }
@@ -366,11 +382,14 @@ export function sectionsToHtml(sections: Section[], docType: DocumentType): stri
 
 export function generateDocxBlob(html: string): Blob {
   const fullHtml = `
-    <html xmlns:o='urn:schemas-microsoft-com:office:office' 
-          xmlns:w='urn:schemas-microsoft-com:office:word' 
-          xmlns='http://www.w3.org/TR/REC-html40'>
+    <html xmlns:v="urn:schemas-microsoft-com:vml"
+          xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+          xmlns="http://www.w3.org/TR/REC-html40">
     <head>
       <meta charset="utf-8">
+      <title>Export</title>
       <!--[if gte mso 9]>
       <xml>
         <w:WordDocument>
@@ -380,6 +399,23 @@ export function generateDocxBlob(html: string): Blob {
         </w:WordDocument>
       </xml>
       <![endif]-->
+      <style>
+        /* Format Margin Standar Skripsi: Kiri 4cm, Atas 3cm, Kanan 3cm, Bawah 3cm */
+        @page WordSection1 {
+            size: 21.0cm 29.7cm; /* A4 size */
+            margin: 3.0cm 3.0cm 3.0cm 4.0cm; 
+            mso-header-margin: 1.5cm;
+            mso-footer-margin: 1.5cm;
+            mso-paper-source: 0;
+        }
+        div.WordSection1 { 
+            page: WordSection1; 
+        }
+        p { 
+            margin: 0; 
+            padding: 0; 
+        }
+      </style>
     </head>
     <body>
       ${html}
