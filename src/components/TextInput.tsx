@@ -1,4 +1,5 @@
-import { Trash2, Copy } from 'lucide-react';
+import { useRef } from 'react';
+import { Clipboard, Trash2 } from 'lucide-react';
 
 interface Props {
   value: string;
@@ -7,42 +8,70 @@ interface Props {
 }
 
 export default function TextInput({ value, onChange, onClear }: Props) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      onChange(value + (value ? '\\n\\n' : '') + text);
-    } catch (err) {
-      console.error('Failed to read clipboard', err);
+      onChange(text);
+    } catch {
+      // Fallback: focus textarea for manual paste
+      textareaRef.current?.focus();
     }
   };
 
+  const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+  const charCount = value.length;
+
   return (
-    <div className="flex flex-col h-[400px]">
-      <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-        <span className="text-sm font-medium text-gray-600">Input Teks AI:</span>
-        <div className="flex gap-2">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <button
             onClick={handlePaste}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
           >
-            <Copy className="w-3.5 h-3.5" />
-            Paste
-          </button>
-          <button
-            onClick={onClear}
-            disabled={!value}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Hapus Semua
+            <Clipboard className="w-3.5 h-3.5" />
+            Paste dari Clipboard
           </button>
         </div>
+        {value && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400">
+              {wordCount} kata · {charCount} karakter
+            </span>
+            <button
+              onClick={onClear}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Hapus
+            </button>
+          </div>
+        )}
       </div>
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Paste teks hasil generate dari ChatGPT, Claude, Gemini, dll di sini..."
-        className="flex-1 w-full p-4 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-lg bg-gray-50 text-gray-800"
+        placeholder={`Paste teks dari ChatGPT, Gemini, Claude, atau AI lainnya di sini...
+
+Contoh format yang didukung:
+# Judul Bab
+## Sub Judul
+Paragraf teks biasa akan diformat otomatis.
+
+- Item list 1
+- Item list 2
+
+1. Numbered item 1
+2. Numbered item 2
+
+> Kutipan atau blockquote
+
+**Teks bold** dan *teks italic*`}
+        className="w-full h-64 sm:h-80 p-4 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-gray-400 font-mono"
+        spellCheck={false}
       />
     </div>
   );

@@ -10,7 +10,6 @@ const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './', // Ensures relative paths for assets, preventing 404s on GitHub Pages
   plugins: [react(), tailwindcss(), viteSingleFile()],
   resolve: {
     alias: {

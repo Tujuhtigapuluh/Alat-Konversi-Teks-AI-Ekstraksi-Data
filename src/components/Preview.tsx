@@ -8,30 +8,38 @@ interface Props {
   onToggle: () => void;
 }
 
-export default function Preview({ html, docType, visible, onToggle }: Props) {
+export default function Preview({ html, visible, onToggle }: Props) {
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
-      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-2 text-gray-800 font-medium">
-          {visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          Preview Dokumen
-        </div>
-        <button
-          onClick={onToggle}
-          className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-        >
-          {visible ? 'Sembunyikan' : 'Tampilkan'}
-        </button>
-      </div>
-      
-      {visible && (
-        <div className="p-4 sm:p-8 overflow-auto max-h-[600px] flex justify-center bg-gray-100">
-          <div 
-            className="bg-white w-full max-w-[21cm] min-h-[29.7cm] shadow-md p-[2cm]"
-            style={{ 
-              fontFamily: docType === 'skripsi' || docType === 'makalah' ? '"Times New Roman", Times, serif' : 'Arial, sans-serif',
-              lineHeight: docType === 'jurnal' ? '1' : docType === 'skripsi' ? '1.5' : '1.15'
-            }}
+    <div>
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors mb-3 cursor-pointer"
+      >
+        {visible ? (
+          <>
+            <EyeOff className="w-4 h-4" />
+            Sembunyikan Preview
+          </>
+        ) : (
+          <>
+            <Eye className="w-4 h-4" />
+            Tampilkan Preview
+          </>
+        )}
+      </button>
+
+      {visible && html && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-400" />
+              <div className="w-3 h-3 rounded-full bg-amber-400" />
+              <div className="w-3 h-3 rounded-full bg-green-400" />
+            </div>
+            <span className="text-xs text-gray-500 ml-2">Preview Dokumen</span>
+          </div>
+          <div
+            className="p-6 bg-white max-h-[600px] overflow-y-auto"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </div>

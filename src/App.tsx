@@ -4,6 +4,7 @@ import DocumentTypeSelector from './components/DocumentTypeSelector';
 import TextInput from './components/TextInput';
 import Preview from './components/Preview';
 import ActionButtons from './components/ActionButtons';
+import HumanizePanel from './components/HumanizePanel';
 import { DocumentType, parseAIText, sectionsToHtml } from './utils/textFormatter';
 import {
   Wand2,
@@ -15,16 +16,18 @@ import {
   Type,
   List,
   AlertCircle,
+  Shield,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'ai-text-formatter-data';
 
-export default function App() {
+export function App() {
   const [rawText, setRawText] = useState('');
   const [docType, setDocType] = useState<DocumentType>('skripsi');
   const [showPreview, setShowPreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'format' | 'humanize'>('format');
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -100,6 +103,10 @@ export default function App() {
     }
   }, []);
 
+  const handleApplyHumanized = useCallback((humanizedText: string) => {
+    setRawText(humanizedText);
+  }, []);
+
   if (!isLoaded) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -152,84 +159,130 @@ export default function App() {
           </div>
         </section>
 
-        {/* Format indicator */}
+        {/* Tab Switcher: Format vs Humanize */}
         {rawText.trim() && !error && (
-          <div className="flex justify-center animate-fade-in">
-            <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-full">
-              <Wand2 className="w-4 h-4 text-indigo-500 animate-pulse" />
-              <span className="text-sm font-medium text-indigo-600">
-                Otomatis diformat!
-              </span>
-              <ArrowDown className="w-4 h-4 text-indigo-400" />
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        {sections.length > 0 && (
-          <section className="animate-fade-in">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Terdeteksi {stats.total} elemen
-                </h3>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <StatCard
-                  icon={<Type className="w-4 h-4" />}
-                  label="Heading"
-                  value={stats.headings}
-                  color="blue"
-                />
-                <StatCard
-                  icon={<Layout className="w-4 h-4" />}
-                  label="Paragraf"
-                  value={stats.paragraphs}
-                  color="purple"
-                />
-                <StatCard
-                  icon={<List className="w-4 h-4" />}
-                  label="List"
-                  value={stats.lists}
-                  color="emerald"
-                />
-                <StatCard
-                  icon={<Zap className="w-4 h-4" />}
-                  label="Kutipan"
-                  value={stats.quotes}
-                  color="amber"
-                />
-                {stats.tocItems > 0 && (
-                  <StatCard
-                    icon={<List className="w-4 h-4" />}
-                    label="Daftar Isi"
-                    value={stats.tocItems}
-                    color="indigo"
-                  />
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Step 3: Actions */}
-        {sections.length > 0 && (
           <section className="animate-fade-in">
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-7 h-7 bg-indigo-500 text-white rounded-full text-sm font-bold">
                 3
               </div>
-              <h2 className="text-lg font-bold text-gray-800">Hasil & Ekspor</h2>
+              <h2 className="text-lg font-bold text-gray-800">Pilih Aksi</h2>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-5">
-              <ActionButtons sections={sections} docType={docType} html={html} />
-              <Preview
-                html={html}
-                docType={docType}
-                visible={showPreview}
-                onToggle={() => setShowPreview(!showPreview)}
-              />
+
+            {/* Tab Buttons */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('format')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-all cursor-pointer ${
+                    activeTab === 'format'
+                      ? 'text-indigo-700 bg-indigo-50 border-b-2 border-indigo-500'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Wand2 className="w-4 h-4" />
+                  <span>Format Dokumen</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    activeTab === 'format' ? 'bg-indigo-200 text-indigo-700' : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    Auto
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('humanize')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-all cursor-pointer ${
+                    activeTab === 'humanize'
+                      ? 'text-purple-700 bg-purple-50 border-b-2 border-purple-500'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Humanisasi Anti-Turnitin</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    activeTab === 'humanize' ? 'bg-purple-200 text-purple-700' : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    NEW
+                  </span>
+                </button>
+              </div>
+
+              <div className="p-5">
+                {activeTab === 'format' ? (
+                  <div className="space-y-5">
+                    {/* Format indicator */}
+                    <div className="flex justify-center">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-full">
+                        <Wand2 className="w-4 h-4 text-indigo-500 animate-pulse" />
+                        <span className="text-sm font-medium text-indigo-600">
+                          Otomatis diformat!
+                        </span>
+                        <ArrowDown className="w-4 h-4 text-indigo-400" />
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    {sections.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <h3 className="text-sm font-semibold text-gray-700">
+                            Terdeteksi {stats.total} elemen
+                          </h3>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                          <StatCard
+                            icon={<Type className="w-4 h-4" />}
+                            label="Heading"
+                            value={stats.headings}
+                            color="blue"
+                          />
+                          <StatCard
+                            icon={<Layout className="w-4 h-4" />}
+                            label="Paragraf"
+                            value={stats.paragraphs}
+                            color="purple"
+                          />
+                          <StatCard
+                            icon={<List className="w-4 h-4" />}
+                            label="List"
+                            value={stats.lists}
+                            color="emerald"
+                          />
+                          <StatCard
+                            icon={<Zap className="w-4 h-4" />}
+                            label="Kutipan"
+                            value={stats.quotes}
+                            color="amber"
+                          />
+                          {stats.tocItems > 0 && (
+                            <StatCard
+                              icon={<List className="w-4 h-4" />}
+                              label="Daftar Isi"
+                              value={stats.tocItems}
+                              color="indigo"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Export Actions */}
+                    {sections.length > 0 && (
+                      <>
+                        <ActionButtons sections={sections} docType={docType} html={html} />
+                        <Preview
+                          html={html}
+                          docType={docType}
+                          visible={showPreview}
+                          onToggle={() => setShowPreview(!showPreview)}
+                        />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <HumanizePanel rawText={rawText} onApply={handleApplyHumanized} />
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -255,6 +308,13 @@ export default function App() {
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">▸</span>
                       <span>
+                        Gunakan tab <strong className="text-purple-700">🛡️ Humanisasi Anti-Turnitin</strong> untuk
+                        memanusiakan teks agar lolos cek plagiarisme
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">▸</span>
+                      <span>
                         Format <strong>Daftar Isi</strong> dengan leader dots (.....) akan otomatis 
                         dikenali dan diformat rapi
                       </span>
@@ -264,12 +324,6 @@ export default function App() {
                       <span>
                         Format <strong>Markdown</strong> (heading #, bold **, italic *, list -, numbered 1.)
                         akan otomatis dikenali
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-amber-500 mt-0.5">▸</span>
-                      <span>
-                        Pilih jenis dokumen yang sesuai untuk mendapatkan format yang tepat
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -290,11 +344,17 @@ export default function App() {
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
               <FeatureCard
                 icon="🎯"
                 title="Auto-Format"
                 desc="Otomatis mengenali heading, paragraf, list, bold, italic, dan kutipan dari teks AI"
+              />
+              <FeatureCard
+                icon="🛡️"
+                title="Anti-Turnitin"
+                desc="Humanisasi teks AI dengan penggantian sinonim, restrukturisasi kalimat, dan variasi gaya penulisan"
+                highlight
               />
               <FeatureCard
                 icon="📑"
@@ -316,10 +376,10 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-sm text-gray-500">
             <span className="font-semibold text-indigo-600">AI Text Formatter</span> — Rapikan
-            teks AI untuk dokumen akademik dengan mudah ✨
+            & humanisasi teks AI untuk dokumen akademik ✨
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Mendukung output dari ChatGPT, Gemini, Claude, Copilot, dan AI lainnya
+            Mendukung output dari ChatGPT, Gemini, Claude, Copilot, dan AI lainnya • Anti-Turnitin built-in
           </p>
         </div>
       </footer>
@@ -357,12 +417,21 @@ function StatCard({
   );
 }
 
-function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+function FeatureCard({ icon, title, desc, highlight }: { icon: string; title: string; desc: string; highlight?: boolean }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+    <div className={`rounded-xl border p-5 hover:shadow-md transition-shadow ${
+      highlight 
+        ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 ring-2 ring-purple-100' 
+        : 'bg-white border-gray-200'
+    }`}>
       <div className="text-3xl mb-3">{icon}</div>
-      <h3 className="font-bold text-gray-800 mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+      <h3 className={`font-bold mb-1 ${highlight ? 'text-purple-800' : 'text-gray-800'}`}>{title}</h3>
+      <p className={`text-sm leading-relaxed ${highlight ? 'text-purple-600' : 'text-gray-500'}`}>{desc}</p>
+      {highlight && (
+        <span className="inline-block mt-2 text-[10px] font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 rounded-full">
+          NEW FEATURE
+        </span>
+      )}
     </div>
   );
 }

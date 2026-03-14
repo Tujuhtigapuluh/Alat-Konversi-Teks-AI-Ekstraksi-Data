@@ -1,80 +1,106 @@
-import { Download, FileCode2 } from 'lucide-react';
-import { Section, DocumentType } from '../utils/textFormatter';
+import { useState } from 'react';
+import { Download, Check, FileText, Code } from 'lucide-react';
+import { DocumentType, generateDocxBlob } from '../utils/textFormatter';
 
 interface Props {
-  sections: Section[];
+  sections: unknown[];
   docType: DocumentType;
   html: string;
 }
 
 export default function ActionButtons({ docType, html }: Props) {
+  const [copiedHtml, setCopiedHtml] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
+
   const handleDownloadDocx = () => {
-    // Skripsi usually requires: Left: 4cm, Right: 3cm, Top: 3cm, Bottom: 3cm
-    const margin = docType === 'skripsi' || docType === 'makalah' 
-      ? 'margin: 3.0cm 3.0cm 3.0cm 4.0cm;' 
-      : 'margin: 2.54cm 2.54cm 2.54cm 2.54cm;';
-
-    const preHtml = `<html xmlns:v="urn:schemas-microsoft-com:vml"
-xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:w="urn:schemas-microsoft-com:office:word"
-xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
-xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta http-equiv=Content-Type content="text/html; charset=utf-8">
-<title>Export HTML To Doc</title>
-<style>
-@page WordSection1 {
-  size: 21.0cm 29.7cm; /* A4 */
-  ${margin}
-  mso-header-margin: 36.0pt;
-  mso-footer-margin: 36.0pt;
-  mso-paper-source: 0;
-}
-div.WordSection1 {
-  page: WordSection1;
-}
-</style>
-</head>
-<body>
-<div class="WordSection1">`;
-    const postHtml = "</div></body></html>";
-    const htmlContent = preHtml + html + postHtml;
-
-    // Word needs BOM to recognize UTF-8 properly
-    const blob = new Blob(['\ufeff', htmlContent], {
-      type: 'application/msword'
-    });
-    
+    const blob = generateDocxBlob(html);
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `document_${docType}_${new Date().getTime()}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dokumen-${docType}-${Date.now()}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleCopyHtml = () => {
-    navigator.clipboard.writeText(html);
-    alert('HTML disalin ke clipboard!');
+  const handleCopyHtml = async () => {
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([html], { type: 'text/plain' }),
+        }),
+      ]);
+      setCopiedHtml(true);
+      setTimeout(() => setCopiedHtml(false), 2000);
+    } catch {
+      // Fallback
+      await navigator.clipboard.writeText(html);
+      setCopiedHtml(true);
+      setTimeout(() => setCopiedHtml(false), 2000);
+    }
+  };
+
+  const handleCopyPlainFormatted = async () => {
+    try {
+      // Copy as rich text so it pastes formatted in Word/Docs
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+        }),
+      ]);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+    } catch {
+      await navigator.clipboard.writeText(html);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+    }
   };
 
   return (
     <div className="flex flex-wrap gap-3">
       <button
         onClick={handleDownloadDocx}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all hover:shadow-lg cursor-pointer"
       >
-        <Download className="w-5 h-5" />
+        <Download className="w-4 h-4" />
         Download .doc
       </button>
+
+      <button
+        onClick={handleCopyPlainFormatted}
+        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 text-sm font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+      >
+        {copiedText ? (
+          <>
+            <Check className="w-4 h-4 text-green-500" />
+            <span className="text-green-600">Tersalin!</span>
+          </>
+        ) : (
+          <>
+            <FileText className="w-4 h-4" />
+            Copy Formatted
+          </>
+        )}
+      </button>
+
       <button
         onClick={handleCopyHtml}
-        className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 text-sm font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
       >
-        <FileCode2 className="w-5 h-5" />
-        Copy HTML
+        {copiedHtml ? (
+          <>
+            <Check className="w-4 h-4 text-green-500" />
+            <span className="text-green-600">Tersalin!</span>
+          </>
+        ) : (
+          <>
+            <Code className="w-4 h-4" />
+            Copy HTML
+          </>
+        )}
       </button>
     </div>
   );
